@@ -2,7 +2,7 @@
 
 This tool converts Markdown documents (with some additional LaTeX-inspired tags) to professional-looking PDF documents, mostly targeted towards software specs and documentation.
 
-Based on the awesome [`pdfmake`](https://github.com/bpampuch/pdfmake) tool, which is itself based on ['pdfkit`](https://github.com/foliojs/pdfkit).
+Based on the awesome [`pdfmake`](https://github.com/bpampuch/pdfmake) tool, which is itself based on [`pdfkit`](https://github.com/foliojs/pdfkit).
 
 ## Samples
 
