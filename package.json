@@ -1,7 +1,7 @@
 {
   "name": "makepdf",
   "version": "0.1.0",
-  "description": "Opinionated Markdown-to-PDF converter",
+  "description": "Opinionated Markdown-to-PDF compiler",
   "main": "dist/index.js",
   "bin": "bin/makepdf",
   "files": [
