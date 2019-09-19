@@ -1,0 +1,32 @@
+{
+  "name": "makepdf",
+  "version": "0.1.0",
+  "description": "Opinionated Markdown-to-PDF converter",
+  "main": "dist/index.js",
+  "bin": "bin/makepdf",
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "tsc -p src",
+    "start": "node dist sample/makepdf.json"
+  },
+  "keywords": [
+    "pdf",
+    "markdown",
+    "pdfmake"
+  ],
+  "author": "Jelmer Cormont",
+  "license": "MIT",
+  "dependencies": {
+    "@ibm/plex": "^2.0.0",
+    "glob": "^7.1.4",
+    "pdfmake": "^0.1.58"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.1",
+    "@types/node": "^12.7.4"
+  }
+}

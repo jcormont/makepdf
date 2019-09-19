@@ -1,0 +1,67 @@
+[
+  {
+    "input": {
+      "baseDir": "formal"
+    },
+    "output": {
+      "footerStartPage": 2,
+      "footerEndPage": -1,
+      "file": "dist/formal.pdf",
+      "info": {
+        "author": "F. Ictional",
+        "title": "Test Document",
+        "subject": "PDF Generator"
+      }
+    },
+    "define": {
+      "customer": "Foo Corporation"
+    }
+  },
+  {
+    "input": {
+      "baseDir": "manual",
+      "entry": "index.md"
+    },
+    "output": {
+      "file": "../manual.pdf",
+      "info": {
+        "author": "Jelmer Cormont",
+        "title": "Manual",
+        "subject": "makepdf"
+      }
+    },
+    "fonts": {
+      "Symbol": {
+        "normal": "**/NotoEmoji-Regular.ttf"
+      }
+    },
+    "define": {
+      "test": true
+    },
+    "styles": {
+      "toc": {
+        "fontSize": 8
+      },
+      "doclink": {
+        "bold": true,
+        "color": "#3377dd"
+      },
+      "link": {
+        "color": "#3377dd",
+        "decoration": "underline"
+      },
+      "h1": {
+        "color": "#3377dd"
+      },
+      "h2": {
+        "color": "#3377dd"
+      },
+      "h3": {
+        "color": "#3377dd"
+      },
+      "h4": {
+        "color": "#3377dd"
+      }
+    }
+  }
+]
