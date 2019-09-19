@@ -1,7 +1,10 @@
 {
   "name": "makepdf",
   "version": "0.1.0",
-  "description": "Opinionated Markdown-to-PDF compiler",
+  "description": "Opinionated Markdown-to-PDF converter",
+  "repository": {
+    "url": "https://github.com/jcormont/makepdf.git"
+  },
   "main": "dist/index.js",
   "bin": "bin/makepdf",
   "files": [
