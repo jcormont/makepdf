@@ -271,7 +271,7 @@ export function parseInline(text: string, outer: ParseContext, props?: any) {
 }
 
 /** Return given content (string or array) as a string, or as a `{ text: ... }` block, including given properties */
-export function asTextNode(content: any): string | object & { text: any };
+export function asTextNode(content: any): string | (object & { text: any });
 export function asTextNode(content: any, props: any): object & { text: any };
 export function asTextNode(content?: any, props?: any) {
   let result: any = { text: "" };
@@ -283,6 +283,7 @@ export function asTextNode(content?: any, props?: any) {
   }
   if (props) {
     if (typeof result === "string") result = { text: result };
+    if (result.style && props.style) result = { text: [result] };
     Object.assign(result, props);
   }
   return result;
