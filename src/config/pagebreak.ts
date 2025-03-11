@@ -1,11 +1,11 @@
 export function pageBreakBefore(cur: any, follow: any[], nextPage: any[]) {
   let lvl = cur.headlineLevel;
   if (cur.table) {
-    follow = follow.filter(n => n.style !== "tableHeader");
+    follow = follow.filter((n) => n.style !== "tableHeader");
   } else if (!lvl) {
-    return;
+    return false;
   }
-  let footIdx = follow.findIndex(n => n.style === "footer");
+  let footIdx = follow.findIndex((n) => n.style === "footer");
   if (footIdx >= 0) follow = follow.slice(0, footIdx);
   if (
     !follow.length &&
@@ -15,4 +15,5 @@ export function pageBreakBefore(cur: any, follow: any[], nextPage: any[]) {
   ) {
     return true;
   }
+  return false;
 }

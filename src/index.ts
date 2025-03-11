@@ -6,10 +6,11 @@ import {
   getConfig,
   pageBreakBefore,
   getTableLayouts,
-} from "./config";
-import { getFooterFn } from "./content/footer";
-import { OutputContext } from "./parser/context";
-import { parseMarkdownFile } from "./parser/parse";
+} from "./config/index.js";
+import { getFooterFn } from "./content/footer.js";
+import { OutputContext } from "./parser/context.js";
+import { parseMarkdownFile } from "./parser/parse.js";
+import { DynamicContent, Margins, PageOrientation } from "pdfmake/interfaces.js";
 
 const PROGRAM_NAME = "makepdf";
 const DEFAULT_CONFIG = "makepdf.json";
@@ -17,22 +18,22 @@ const DEFAULT_CONFIG = "makepdf.json";
 let writeOutputLog = false;
 
 /** Output PDF using `pdfmake` */
-function writePdf(content: any[], ctx: OutputContext) {
+async function writePdf(content: any[], ctx: OutputContext) {
   if (writeOutputLog) console.log("...generating PDF");
-  let PdfPrinter = require("pdfmake");
+  let PdfPrinter = (await import("pdfmake")).default;
   let fonts = findFontFiles(ctx.config.fonts);
   let printer = new PdfPrinter(fonts);
   let pdfDoc = printer.createPdfKitDocument(
     {
       info: ctx.config.output.info,
       pageSize: ctx.config.output.pageSize,
-      pageOrientation: ctx.config.output.pageOrientation,
-      pageMargins: ctx.config.output.pageMargins,
+      pageOrientation: ctx.config.output.pageOrientation as PageOrientation,
+      pageMargins: ctx.config.output.pageMargins as Margins,
       defaultStyle: ctx.config.styles.default,
-      styles: ctx.config.styles,
+      styles: ctx.config.styles as any,
       pageBreakBefore,
       content,
-      footer: getFooterFn(ctx.config),
+      footer: getFooterFn(ctx.config) as DynamicContent,
     },
     {
       tableLayouts: getTableLayouts(ctx.config),
@@ -60,11 +61,11 @@ function withConfig(configFileName: string | undefined, f: (config: Defaults) =>
   } else {
     allConfig = [getConfig()];
   }
-  allConfig.filter(c => !c.skip).forEach(f);
+  allConfig.filter((c) => !c.skip).forEach(f);
 }
 
 /** Generate a PDF document using given configuration */
-export function generate(config: Defaults) {
+export async function generate(config: Defaults) {
   let context = new OutputContext(config);
   let content: any[];
   try {
@@ -72,12 +73,12 @@ export function generate(config: Defaults) {
     if (config.input.baseDir) {
       fileName = path.resolve(config.input.baseDir, fileName);
     }
-    content = parseMarkdownFile(fileName, context);
+    content = await parseMarkdownFile(fileName, context);
     context.updateRefs();
     if (config.output.debug) {
       writeFileSync("debug.json", JSON.stringify(content, undefined, "  "));
     }
-  } catch (err) {
+  } catch (err: any) {
     if (err.code === "PARSE_ERROR") {
       console.error(`*** Parse error (${err.fileName}:${err.line})\n${err.message}`);
     } else {
@@ -85,17 +86,17 @@ export function generate(config: Defaults) {
     }
     return process.exit(1);
   }
-  writePdf(content, context);
+  await writePdf(content, context);
 }
 
 /** CLI main function */
-function main() {
+async function main() {
   let arg = process.argv[2];
   if (arg === "--help" || arg === "-h") {
     console.log("Usage: " + PROGRAM_NAME + " [configurationfile]");
     process.exit(0);
   }
-  withConfig(arg, config => {
+  withConfig(arg, async (config) => {
     // make paths relative to config file
     let argBase = arg && path.resolve(path.dirname(arg));
     if (config.output.file && argBase) {
@@ -121,7 +122,7 @@ function main() {
 
     // generate the PDF for this config
     writeOutputLog = true;
-    generate(config);
+    await generate(config);
   });
 }
 

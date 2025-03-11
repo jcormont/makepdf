@@ -14,4 +14,4 @@ let month = [
   "December",
 ][dd.getMonth()];
 
-module.exports = { text: month + " " + dd.getFullYear(), style: "p" };
+export default { text: month + " " + dd.getFullYear(), style: "p" };

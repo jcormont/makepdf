@@ -21,6 +21,7 @@ Nullam erat nulla, fermentum a tempus in, blandit non mauris. Duis eget vestibul
 Integer purus massa, fringilla aliquet neque interdum, vulputate aliquet velit.
 
 \\{ "table": true, "widths": [80, "*", 20] }
+
 - - Item
   - Description
   - Y/N

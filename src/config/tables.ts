@@ -1,4 +1,4 @@
-import { Defaults } from "./index";
+import { Defaults } from "./index.js";
 
 function fval<T>(v: T) {
   return () => v;
@@ -53,9 +53,7 @@ export function getTableLayouts(config: Defaults) {
       paddingBottom: fval(3),
     },
     toc: {
-      hLineWidth(i: number) {
-        if (i) return 0.5;
-      },
+      hLineWidth: (i: number) => (i ? 0.5 : 0),
       vLineWidth: fval(0),
       paddingLeft: fval(0),
       paddingTop: fval(1),

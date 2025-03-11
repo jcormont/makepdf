@@ -1,5 +1,5 @@
-import { Defaults } from "../config";
-import { flattenText } from "./inline";
+import { Defaults } from "../config/index.js";
+import { flattenText } from "./inline.js";
 
 class AutoNumberState {
   constructor(private _prev?: AutoNumberState, private _isAlpha?: boolean) {}
@@ -78,18 +78,18 @@ export class OutputContext {
   }
 
   updateRefs() {
-    this._refsToUpdate.forEach(r => {
+    this._refsToUpdate.forEach((r) => {
       if (!this._refIds[r.id]) throw Error("Reference not found: " + r.id);
-      r.refNode.text = this._refIds[r.id].text;
+      r.refNode.text = this._refIds[r.id]?.text || "";
     });
     Object.assign(this._tocTable, this.config.styles.toc);
     this._tocTable.table = {
       widths: this.config.styles.toc.widths,
-      body: this._toc.map(id => [
+      body: this._toc.map((id) => [
         {
           linkToDestination: id,
-          text: this._refIds[id].text,
-          style: "toc" + this._refIds[id].headingLevel,
+          text: this._refIds[id]!.text,
+          style: "toc" + this._refIds[id]!.headingLevel,
         },
         { pageReference: id, alignment: "right" },
       ]),

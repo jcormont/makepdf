@@ -1,10 +1,11 @@
-import { readFileSync } from "fs";
-import { makeBlock, makeSeparator } from "../content/blocks";
-import { asTextNode, parseInline, flattenText } from "./inline";
-import { OutputContext } from "./context";
-import { parseFileRef } from "./transclude";
+import { readFile } from "fs/promises";
+import { makeBlock, makeSeparator } from "../content/blocks.js";
+import { asTextNode, parseInline, flattenText } from "./inline.js";
+import { OutputContext } from "./context.js";
+import { parseFileRef } from "./transclude.js";
 
-const RE_LINE_NOT_PLAIN_TEXT = /^(\s*\#|\-\s|\*\s|1\.\s|\`\`\`|\-{3,}\s*$|\\\\\{|\\\\include|\\\\image|\\\\img|\\\\toc|\\\\pagebreak)/;
+const RE_LINE_NOT_PLAIN_TEXT =
+  /^(\s*\#|\-\s|\*\s|1\.\s|\`\`\`|\-{3,}\s*$|\\\\\{|\\\\include|\\\\image|\\\\img|\\\\toc|\\\\pagebreak)/;
 const RE_TABLE_SEPARATOR_LINE = /^\s*(\|\s*)?(\:?\-{3,}\:?\s*\|?\s*)+$/;
 
 /** Parser context definition */
@@ -48,11 +49,11 @@ export class ParseContext {
   }
 
   /** Runs given function and asserts that one or more lines are used */
-  validate(f: () => void) {
+  async validate(f: () => Promise<void>) {
     let n = this.getLineNumber();
-    f();
+    await f();
     if (this.isAt(n)) {
-      let str = this.peek() || (this.hasInput ? "<blank line>" : "<end>");
+      let str = this.peek() || (this.hasInput() ? "<blank line>" : "<end>");
       throw Error("Cannot parse input: " + str);
     }
   }
@@ -78,16 +79,17 @@ export class ParseContext {
   /** Replace comments and insert tags for the next line in the buffer */
   private _autoReplace() {
     if (!this._lines.length || this._noReplace) return;
-    let line = this._lines[0]
-      .replace(/<!--(.*?)-->/g, "")
-      .replace(/^([-*> \t]+)\\\\insert\s*\(([^\s\)]+)\)/gm, (_m, pre, name) => {
+    let line = this._lines[0]!.replace(/<!--(.*?)-->/g, "").replace(
+      /^([-*> \t]+)\\\\insert\s*\(([^\s\)]+)\)/gm,
+      (_m, pre, name) => {
         // replace 'insert' at the START of a line (repeat prefix)
         let defLines = this.getDefinition(name)
           .split(/\n/)
-          .map(s => pre + s);
+          .map((s) => pre + s);
         this._lines.splice(1, 0, ...defLines.slice(1));
-        return defLines[0];
-      });
+        return defLines[0]!;
+      }
+    );
     this._lines[0] = line;
   }
 
@@ -103,7 +105,7 @@ export class ParseContext {
   private _noReplace?: boolean;
 }
 
-function parse(ctx: ParseContext) {
+async function parse(ctx: ParseContext) {
   /** Next set of custom properties as read from the input */
   let _nextProps: any;
 
@@ -118,7 +120,7 @@ function parse(ctx: ParseContext) {
   function setPendingProps(props: any) {
     if (!_nextProps) _nextProps = {};
     if (typeof props === "string") {
-      props.split(/[\s,;]+/).forEach(name => {
+      props.split(/[\s,;]+/).forEach((name) => {
         if (!name) return;
         Object.assign(_nextProps, ctx.output.getStyleProps(name));
       });
@@ -128,7 +130,7 @@ function parse(ctx: ParseContext) {
   }
 
   /** Parse line(s) with custom properties for the next block; does NOT return anything */
-  function parseCustomProps(indent: number) {
+  async function parseCustomProps(indent: number) {
     let text = "";
     let start = ctx.getLineNumber();
     let lastError: any;
@@ -159,7 +161,7 @@ function parse(ctx: ParseContext) {
   }
 
   /** Parse heading (single line) */
-  function parseHeading(indent: number) {
+  async function parseHeading(indent: number) {
     let text = ctx.shift()!.slice(indent);
     let level = text.match(/^\#+/)![0].length;
     text = text.replace(/^\#+\s*/, "");
@@ -169,7 +171,7 @@ function parse(ctx: ParseContext) {
       return "";
     });
     let result = parseInline(text, ctx);
-    result.forEach(r => {
+    result.forEach((r) => {
       if (r.style === "autonum") r.style = "autonum_h" + level;
     });
     ctx.output.addRefId(id, result, level);
@@ -182,7 +184,7 @@ function parse(ctx: ParseContext) {
   }
 
   /** Parse paragraph text line(s) */
-  function parseParagraph(indent: number) {
+  async function parseParagraph(indent: number) {
     let props = getPendingProps();
     let start = ctx.getLineNumber();
     let p = "";
@@ -193,7 +195,7 @@ function parse(ctx: ParseContext) {
       let text = line.slice(i).replace(/\\$/, "\n");
       if (RE_LINE_NOT_PLAIN_TEXT.test(text)) break;
       if (RE_TABLE_SEPARATOR_LINE.test(text)) {
-        return parseTable(i, p, props);
+        return await parseTable(i, p, props);
       }
       p += (p.length ? " " : "") + text;
       ctx.shift();
@@ -202,14 +204,14 @@ function parse(ctx: ParseContext) {
   }
 
   /** Parse table; always called from `parseParagraph` which passes the first (heading) line which may have already been read (but not parsed), the next pending line in the buffer context is going to be the 'separator' line */
-  function parseTable(indent: number, firstLine: string, props: any) {
+  async function parseTable(indent: number, firstLine: string, props: any) {
     let headerRows = firstLine ? 1 : 0;
 
     // read separator line and figure out columns
     let widths: string[] = [];
     let alignment: string[] = [];
     let sep = ctx.shift().split("|");
-    sep = sep.map(s => s.trim());
+    sep = sep.map((s) => s.trim());
     sep.forEach((col, i) => {
       if (!col) return;
       widths.push("auto");
@@ -224,19 +226,19 @@ function parse(ctx: ParseContext) {
     const parseLine = (text: string, style: string) => {
       let p = parseInline(text, ctx);
       let cols: any[] = [[]];
-      p.forEach(node => {
+      p.forEach((node) => {
         let current = cols[cols.length - 1];
         if (typeof node === "string") {
           // look for all pipe chars, filter out
           // first/last columns below if extra
-          let colSplit = node.split(/(?<!\\)\|/).map(s => s.replace(/\\\|/g, "|"));
+          let colSplit = node.split(/(?<!\\)\|/).map((s) => s.replace(/\\\|/g, "|"));
           if (colSplit.length > 1) {
-            node = colSplit.pop()!.trimLeft();
-            colSplit.forEach(s => {
+            node = colSplit.pop()!.trimStart();
+            colSplit.forEach((s) => {
               if (!current.length) {
                 current.push(s.trim());
               } else if (s !== "") {
-                current.push(s.trimRight());
+                current.push(s.trimEnd());
               }
               cols.push((current = []));
             });
@@ -250,7 +252,7 @@ function parse(ctx: ParseContext) {
       });
       let row: any[] = [];
       cols.forEach((col, i) => {
-        if (!sep[i] && (col.length <= 1 && !col[0])) {
+        if (!sep[i] && col.length <= 1 && !col[0]) {
           return;
         }
         let cell: any = asTextNode(col, { style });
@@ -283,8 +285,8 @@ function parse(ctx: ParseContext) {
   }
 
   /** Parse list items at given indentation and starting with given RegExp */
-  function parseList(indent: number, re: RegExp) {
-    let isOrdered = /\d/.test(ctx.peek()[indent]);
+  async function parseList(indent: number, re: RegExp) {
+    let isOrdered = /\d/.test(ctx.peek()[indent]!);
     let props = getPendingProps();
     let start = ctx.getLineNumber();
 
@@ -306,7 +308,7 @@ function parse(ctx: ParseContext) {
       if (!re.test(text)) break;
       text = text.replace(re, "");
       let textIndent = line.length - text.length;
-      let li = parseAny(textIndent);
+      let li = await parseAny(textIndent);
       if (li.length === 1) {
         let content = li[0];
         if (typeof content === "string") {
@@ -327,12 +329,12 @@ function parse(ctx: ParseContext) {
 
     // convert to table if props contain 'table'
     if ("table" in props) {
-      return listToTable(items, props);
+      return await listToTable(items, props);
     }
 
     // convert to columns if props contain 'columns'
     if ("columns" in props || "columnGap" in props) {
-      return listToColumns(items, props);
+      return await listToColumns(items, props);
     }
 
     // return OL or UL structure
@@ -342,7 +344,7 @@ function parse(ctx: ParseContext) {
   }
 
   /** Converts a nested list structure to a table */
-  function listToTable(items: any[], props: any) {
+  async function listToTable(items: any[], props: any) {
     let widths = props.widths;
     let layout = props.table;
     if (!(typeof layout === "string")) layout = "default";
@@ -361,7 +363,7 @@ function parse(ctx: ParseContext) {
       });
       return r.ul;
     });
-    body = body.filter(r => !!r);
+    body = body.filter((r) => !!r);
     if (!body.length) throw Error("Table has no rows");
 
     return {
@@ -373,7 +375,7 @@ function parse(ctx: ParseContext) {
   }
 
   /** Converts a list structure to a group of columns */
-  function listToColumns(columns: any[], props: any) {
+  async function listToColumns(columns: any[], props: any) {
     let widths = props.widths;
     if (Array.isArray(widths)) {
       widths.forEach((width, i) => {
@@ -390,9 +392,9 @@ function parse(ctx: ParseContext) {
   }
 
   /** Parse a pre-formatted block (until next backticks) */
-  function parsePre(indent: number) {
+  async function parsePre(indent: number) {
     let firstLine = ctx.shift(); // eat up first backticks
-    let ticks = firstLine.match(/^\s*(\`+)/)![1];
+    let ticks = firstLine.match(/^\s*(\`+)/)![1]!;
     let start = ctx.getLineNumber();
     let stack: any[] = [];
     ctx.disableReplacements();
@@ -413,30 +415,30 @@ function parse(ctx: ParseContext) {
   }
 
   /** Parse a (quote) block */
-  function parseBlock(indent: number) {
+  async function parseBlock(indent: number) {
     let next = new (class extends ParseContext {
       constructor() {
         super(ctx.fileName, ctx.output);
       }
-      getDefinition(name: string) {
+      override getDefinition(name: string) {
         return ctx.getDefinition(name);
       }
-      hasInput() {
+      override hasInput() {
         let next = ctx.peek();
         let i = next.match(/^\s*/)![0].length;
         return i === indent && next[i] === ">";
       }
-      peek() {
+      override peek() {
         return ctx.peek().replace(/^\s*\>\s?/, "");
       }
-      shift() {
+      override shift() {
         return ctx.shift().replace(/^\s*\>\s?/, "");
       }
-      getLineNumber() {
+      override getLineNumber() {
         return ctx.getLineNumber();
       }
     })();
-    let stack = parse(next);
+    let stack = await parse(next);
     return makeBlock(stack, {
       unbreakable: true,
       style: "block",
@@ -445,16 +447,16 @@ function parse(ctx: ParseContext) {
   }
 
   /** Parse an `\\include(...)` tag */
-  function parseIncludeTag(indent: number, pattern: string, remainder: string) {
+  async function parseIncludeTag(indent: number, pattern: string, remainder: string) {
     ctx.shift();
     if (!pattern) {
       throw Error("Missing file name in \\\\include(...) tag");
     }
-    return parseFileRef(pattern, remainder, ctx, indent, getPendingProps());
+    return await parseFileRef(pattern, remainder, ctx, indent, getPendingProps());
   }
 
   /** Parse given lines, as long as indented same or greater */
-  function parseAny(indent: number) {
+  async function parseAny(indent: number) {
     let content: any[] = [];
     let start = ctx.getLineNumber();
     while (ctx.hasInput()) {
@@ -465,25 +467,25 @@ function parse(ctx: ParseContext) {
       if (i < indent && text) return content;
 
       // parse text, asserting that the parser head advances
-      ctx.validate(() => {
+      await ctx.validate(async () => {
         if (!text) ctx.shift();
-        else if (/^\\\\\{/.test(text)) parseCustomProps(i);
-        else if (text[0] === "#") content.push(parseHeading(i));
+        else if (/^\\\\\{/.test(text)) await parseCustomProps(i);
+        else if (text[0] === "#") content.push(await parseHeading(i));
         else if (/^\-{3,}\s*$/.test(text)) content.push(parseSeparator());
-        else if (/^\-\s/.test(text)) content.push(parseList(i, /^\s*\-\s/));
-        else if (/^\*\s/.test(text)) content.push(parseList(i, /^\s*\*\s/));
-        else if (/^\d+\.\s/.test(text)) content.push(parseList(i, /^\s*\d+\.\s/));
-        else if (/^\>\s/.test(text)) content.push(parseBlock(i));
-        else if (/^\`\`\`/.test(text)) content.push(parsePre(i));
+        else if (/^\-\s/.test(text)) content.push(await parseList(i, /^\s*\-\s/));
+        else if (/^\*\s/.test(text)) content.push(await parseList(i, /^\s*\*\s/));
+        else if (/^\d+\.\s/.test(text)) content.push(await parseList(i, /^\s*\d+\.\s/));
+        else if (/^\>\s/.test(text)) content.push(await parseBlock(i));
+        else if (/^\`\`\`/.test(text)) content.push(await parsePre(i));
         else {
           // check for tags, otherwise treat as paragraph
           let tagMatch = text.match(/^\s*\\\\(\w+)(?:\(([^\)]+)\))?(.*)/);
-          let tag = tagMatch && tagMatch[1].toLowerCase();
+          let tag = tagMatch && tagMatch[1]!.toLowerCase();
           switch (tag) {
             case "include":
             case "image":
             case "img":
-              content.push(...parseIncludeTag(i, tagMatch![2], tagMatch![3]));
+              content.push(...(await parseIncludeTag(i, tagMatch![2]!, tagMatch![3]!)));
               break;
             case "pagebreak":
               ctx.shift();
@@ -494,7 +496,7 @@ function parse(ctx: ParseContext) {
               content.push(ctx.output.getTOCTable());
               break;
             default:
-              content.push(parseParagraph(i));
+              content.push(await parseParagraph(i));
           }
         }
       });
@@ -502,12 +504,16 @@ function parse(ctx: ParseContext) {
     return content;
   }
 
-  return parseAny(0);
+  return await parseAny(0);
 }
 
 /** Parse an entire markdown file and return a content array */
-export function parseMarkdownFile(fileName: string, output: OutputContext, defs?: any) {
-  let str = readFileSync(fileName).toString();
+export async function parseMarkdownFile(
+  fileName: string,
+  output: OutputContext,
+  defs?: any
+) {
+  let str = await readFile(fileName, "utf8");
   if (output.config.output.debug) {
     console.log("...parsing " + fileName);
   }
@@ -516,8 +522,8 @@ export function parseMarkdownFile(fileName: string, output: OutputContext, defs?
   let ctx = new ParseContext(fileName, output, defs);
   try {
     ctx.append(str);
-    return parse(ctx);
-  } catch (err) {
+    return await parse(ctx);
+  } catch (err: any) {
     throw {
       code: "PARSE_ERROR",
       message: err.message || String(err),

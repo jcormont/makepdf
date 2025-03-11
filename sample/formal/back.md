@@ -1,4 +1,5 @@
 \\{ "table": "noBorders", "absolutePosition": { "x": 52, "y": 490 }, "headerRows": 0 }
+
 - - \\include(/qr.js)
 
 \\{small}

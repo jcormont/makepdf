@@ -1,7 +1,8 @@
 # \\(). Lorem
 
 \\{note}
-> \> _Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam faucibus bibendum mattis._
+
+> → _Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam faucibus bibendum mattis._
 
 ## \\().(). Introduction {#intro}
 

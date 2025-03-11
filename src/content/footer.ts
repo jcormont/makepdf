@@ -1,7 +1,7 @@
-import { Defaults } from "../config";
+import { Defaults } from "../config/index.js";
 
 export function getFooterFn(config: Defaults) {
-  return function(currentPage: number, numPages: any) {
+  return function (currentPage: number, numPages: any) {
     if (
       (config.output.footerEndPage! < 0 &&
         currentPage > numPages + config.output.footerEndPage!) ||

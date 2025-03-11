@@ -1,4 +1,4 @@
-import styles from "./styles";
+import styles from "./styles.js";
 
 const PLEX_FONT_LIGHT = {
   normal: "@ibm/plex/**/IBMPlexSans-Light.ttf",

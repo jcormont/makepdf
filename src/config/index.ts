@@ -1,28 +1,27 @@
-import * as path from "path";
-import defaults from "./defaults";
+import defaults from "./defaults.js";
 
-export * from "./fonts";
-export * from "./pagebreak";
-export * from "./tables";
+export * from "./fonts.js";
+export * from "./pagebreak.js";
+export * from "./tables.js";
 
 export type Defaults = typeof defaults;
 
 /** Helper function to overwrite all properties in a plain object */
-function ovr<T extends any>(target: T, source: any): T {
+function ovr<T extends {}>(target: T, source: any): T {
   const objToString = {}.toString;
-  target = { ...target };
+  const result: any = { ...target };
   for (let p in source) {
     if (
-      target[p] != null &&
-      target[p].toString === objToString &&
+      result[p] != null &&
+      result[p].toString === objToString &&
       source[p].toString === objToString
     ) {
-      target[p] = ovr(target[p], source[p]);
+      result[p] = ovr(result[p], source[p]);
     } else {
-      target[p] = source[p];
+      result[p] = source[p];
     }
   }
-  return target;
+  return result;
 }
 
 /** Returns full configuration based on defaults plus given overrides (object) */

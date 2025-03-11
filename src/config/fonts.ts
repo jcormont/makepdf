@@ -1,10 +1,14 @@
 import { existsSync } from "fs";
 import * as glob from "glob";
 import * as path from "path";
+import { fileURLToPath } from "url";
 
 let nodeModulesPath = "";
 function findNodeModules() {
   try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
     let p = path.resolve(__dirname);
     while (true) {
       if (path.dirname(p) === "node_modules") {
@@ -32,9 +36,9 @@ function findFontFile(fileGlob: string) {
   } catch {}
   try {
     let files = glob.sync(fileGlob, { cwd: nodeModulesPath });
-    if (files.length) return path.resolve(nodeModulesPath, files[0]);
+    if (files.length) return path.resolve(nodeModulesPath, files[0]!);
   } catch {}
-  throw Error("Font file not found: " + glob);
+  throw Error("Font file not found: " + fileGlob);
 }
 
 export function findFontFiles(globs: { [id: string]: { [s: string]: string } }) {
@@ -42,7 +46,7 @@ export function findFontFiles(globs: { [id: string]: { [s: string]: string } }) 
   for (let id in globs) {
     let r: any = (result[id] = {});
     for (let s in globs[id]) {
-      r[s] = findFontFile(globs[id][s]);
+      r[s] = findFontFile(globs[id][s]!);
     }
   }
   return result;

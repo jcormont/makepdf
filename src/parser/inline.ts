@@ -1,4 +1,4 @@
-import { ParseContext } from "./parse";
+import { ParseContext } from "./parse.js";
 
 /** Character-based parse context */
 class InlineParseContext {
@@ -60,7 +60,7 @@ export function parseInline(text: string, outer: ParseContext, props?: any) {
   function parsePaired(ctx: InlineParseContext, expect: RegExp, props?: any) {
     let match = ctx.match(expect);
     if (match) {
-      let result = ctx.cont(next => {
+      let result = ctx.cont((next) => {
         next.shift(match![0].length); // start
         return parseUntil(next, expect, props);
       });
@@ -76,7 +76,7 @@ export function parseInline(text: string, outer: ParseContext, props?: any) {
     );
     if (match) {
       ctx.shift(match[0].length);
-      let text = outer.output.autoNumber(match[1]);
+      let text = outer.output.autoNumber(match[1]!);
       let result = { ...props, text, style: "autonum" };
       if (match[2]) {
         result.id = match[2];
@@ -90,7 +90,7 @@ export function parseInline(text: string, outer: ParseContext, props?: any) {
   function parseLink(ctx: InlineParseContext, props?: any) {
     let match = ctx.match(/^\[[^\]]*\]\([^\)]+\)/);
     if (match) {
-      return ctx.cont(next => {
+      return ctx.cont((next) => {
         next.shift(1); // [
         let text = parseUntil(next, /^\]/, props);
         if (!text) return;
@@ -98,7 +98,7 @@ export function parseInline(text: string, outer: ParseContext, props?: any) {
         let urlMatch = next.match(/\(([^\)]+)\)/);
         if (!urlMatch) return;
         next.shift(urlMatch[0].length);
-        let url = urlMatch[1].trim();
+        let url = urlMatch[1]!.trim();
         if (url[0] === "#") {
           // parse internal link
           let id = url.slice(1);
@@ -120,7 +120,7 @@ export function parseInline(text: string, outer: ParseContext, props?: any) {
   function parseTag(ctx: InlineParseContext, props?: any) {
     let match = ctx.match(/^\\\\(\w+)/);
     if (match) {
-      let tag = match[1].toLowerCase();
+      let tag = match[1]!.toLowerCase();
       if (tag === "blank") {
         ctx.shift(7);
         return { text: "" };
@@ -144,11 +144,11 @@ export function parseInline(text: string, outer: ParseContext, props?: any) {
         // replace 'insert' in the middle of a line
         // (start of line is handled in parse.ts)
         ctx.shift(insertion[0].length);
-        let name = insertion[1];
+        let name = insertion[1]!;
         return outer.getDefinition(name);
       }
 
-      let result = ctx.cont(next => {
+      let result = ctx.cont((next) => {
         let match = ctx.match(/^\\\\\w+(?:\(([^\)]*)\))?\{/);
         if (match) {
           let params = match[1] || "";
@@ -241,7 +241,7 @@ export function parseInline(text: string, outer: ParseContext, props?: any) {
 
       // check punctuation
       if (ctx.match(/^\\\S/)) {
-        let char = ctx.shift(2)[1];
+        let char = ctx.shift(2)[1]!;
         if (char === "~") char = "\u00A0";
         else if ("\\`*_{}[]()<>#+-.!'\"".indexOf(char) < 0) s += "\\";
         s += char;
@@ -297,7 +297,7 @@ export function flattenText(
   if (typeof text === "string") return text.replace(/\s+/g, " ");
   if (Array.isArray(text)) {
     return text
-      .map(a => flattenText(a))
+      .map((a) => flattenText(a))
       .join(separator || "")
       .replace(/\s+/g, " ");
   }

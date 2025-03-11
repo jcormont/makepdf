@@ -1,7 +1,7 @@
 import * as glob from "glob";
 import * as path from "path";
-import { parseInline } from "./inline";
-import { ParseContext, parseMarkdownFile } from "./parse";
+import { parseInline } from "./inline.js";
+import { ParseContext, parseMarkdownFile } from "./parse.js";
 
 function makeImage(p: string, caption: string | any[], props: any) {
   let result = [
@@ -19,7 +19,7 @@ function makeImage(p: string, caption: string | any[], props: any) {
 }
 
 /** Parse a file reference, and optionally the indented content below it */
-export function parseFileRef(
+export async function parseFileRef(
   pattern: string,
   caption: string | any[],
   ctx: ParseContext,
@@ -42,7 +42,7 @@ export function parseFileRef(
     if (nextIndent < firstInnerIndent) firstInnerIndent = nextIndent;
     innerContent.push(ctx.shift());
   }
-  innerContent = innerContent.map(s => s.slice(firstInnerIndent));
+  innerContent = innerContent.map((s) => s.slice(firstInnerIndent));
 
   // expand referenced file path relative to the entry point
   pattern = pattern.trim();
@@ -72,16 +72,16 @@ export function parseFileRef(
     // insert a markdown file
     if (/(?:\.md|\.txt)$/.test(pattern)) {
       result.push(
-        ...parseMarkdownFile(p, ctx.output, {
+        ...(await parseMarkdownFile(p, ctx.output, {
           content: innerContent.join("\n") || caption,
-        })
+        }))
       );
       continue;
     }
 
     // insert the result of a javascript module/function
     if (/(?:\.js)$/.test(pattern)) {
-      let r = require(path.resolve(p));
+      let r = await import(path.resolve(p));
       if (r.default) r = r.default;
       if (typeof r === "function") {
         r = r({

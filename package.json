@@ -5,6 +5,7 @@
   "repository": {
     "url": "https://github.com/jcormont/makepdf.git"
   },
+  "type": "module",
   "main": "dist/index.js",
   "bin": "bin/makepdf",
   "files": [
@@ -13,8 +14,8 @@
   ],
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "tsc -p src",
-    "start": "node dist sample/makepdf.json"
+    "build": "tsc -p .",
+    "make-test": "node dist sample/makepdf.json"
   },
   "keywords": [
     "pdf",
@@ -24,12 +25,14 @@
   "author": "Jelmer Cormont",
   "license": "MIT",
   "dependencies": {
-    "@ibm/plex": "^2.0.0",
-    "glob": "^7.1.4",
-    "pdfmake": "^0.1.58"
+    "@ibm/plex": "2",
+    "glob": "11",
+    "pdfmake": "^0.2.18"
   },
   "devDependencies": {
-    "@types/glob": "^7.1.1",
-    "@types/node": "^12.7.4"
+    "@types/glob": "8",
+    "@types/node": "18",
+    "@types/pdfmake": "^0.2.11",
+    "typescript": "^5.8.2"
   }
 }

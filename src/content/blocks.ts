@@ -1,4 +1,4 @@
-import { Defaults } from "../config";
+import { Defaults } from "../config/index.js";
 
 /** Return a separator node with given properties */
 export function makeSeparator(config: Defaults, props: any) {
