@@ -3,7 +3,8 @@ import * as glob from "glob";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
-let nodeModulesPath = "";
+let nodeModulesPaths: string[] = [];
+
 function findNodeModules() {
   try {
     const __filename = fileURLToPath(import.meta.url);
@@ -12,15 +13,18 @@ function findNodeModules() {
     let p = path.resolve(__dirname);
     while (true) {
       if (path.dirname(p) === "node_modules") {
-        nodeModulesPath = p;
-        break;
+        if (!nodeModulesPaths.includes(p)) {
+          nodeModulesPaths.push(p);
+        }
       }
       if (existsSync(path.join(p, "node_modules"))) {
-        nodeModulesPath = path.join(p, "node_modules");
-        break;
+        nodeModulesPaths.push(path.join(p, "node_modules"));
       }
       let up = path.resolve(p, "..");
-      if (up === p) throw Error();
+      if (up === p) {
+        if (nodeModulesPaths.length) return;
+        throw Error();
+      }
       p = up;
     }
   } catch (err) {
@@ -34,10 +38,12 @@ function findFontFile(fileGlob: string) {
     let files = glob.sync(fileGlob);
     if (files.length) return files[0];
   } catch {}
-  try {
-    let files = glob.sync(fileGlob, { cwd: nodeModulesPath });
-    if (files.length) return path.resolve(nodeModulesPath, files[0]!);
-  } catch {}
+  for (let nodeModulesPath of nodeModulesPaths) {
+    try {
+      let files = glob.sync(fileGlob, { cwd: nodeModulesPath });
+      if (files.length) return path.resolve(nodeModulesPath, files[0]!);
+    } catch {}
+  }
   throw Error("Font file not found: " + fileGlob);
 }
 
